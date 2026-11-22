@@ -196,11 +196,44 @@ body.has-player.sp-mode { padding-bottom: 104px; }
 .impressions { font-size: 15px; max-width: 72ch; border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }
 .btn.spotify { background: #1d7a46; border-color: #1d7a46; color: #fff; }
 
+/* breadcrumb + title link */
+.crumbs { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); text-decoration: underline; }
+.crumbs span { margin: 0 6px; opacity: .6; }
+h1 a { color: inherit; text-decoration: none; }
+h1 a:hover { color: var(--accent); }
+.dlg-head { justify-content: space-between; }
+.dlg-back { pointer-events: auto; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+/* quick chips (phones) and the filter drawer pieces (hidden on desktop) */
+.quick { display: none; }
+.drawer-head, .drawer-foot, .scrim { display: none; }
+#filterToggle .n[hidden] { display: none; }
+#filterToggle .n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; margin-left: 6px; padding: 0 5px; }
+
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  #filterToggle { display: inline-flex; }
-  aside.facets { display: none; position: static; max-height: none; }
-  aside.facets.open { display: block; }
+  #filterToggle { display: inline-flex; align-items: center; }
+  .quick { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+  .quick::-webkit-scrollbar { display: none; }
+  #quick { display: contents; }
+  .quick button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+  .quick button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .quick .sep { flex: none; width: 1px; background: var(--line); margin: 4px 2px; }
+  /* the sidebar becomes a drawer that slides in from the left */
+  aside.facets { position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(88vw, 360px); max-height: none; height: 100%;
+    background: var(--bg); box-shadow: 0 0 40px rgb(0 0 0 / .35); padding: 0; display: flex; flex-direction: column;
+    transform: translateX(-105%); transition: transform .22s ease; visibility: hidden; }
+  aside.facets.open { transform: none; visibility: visible; }
+  aside.facets #facets { overflow: auto; padding: 0 16px; flex: 1; overscroll-behavior: contain; }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; border-bottom: 1px solid var(--line); }
+  .drawer-head b { font: 600 18px var(--serif); }
+  .drawer-foot { display: flex; gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--bg); }
+  .drawer-foot button { flex: 1; border-radius: 999px; padding: 10px 14px; border: 1px solid var(--line); background: var(--surface); }
+  .drawer-foot #drawerDone { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; flex: 2; }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 29; background: rgb(20 14 10 / .5); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  body.drawer-open { overflow: hidden; }
   .hero { grid-template-columns: 1fr; }
   .hero img.cover { max-width: 320px; }
   .detail { padding: 0 16px 20px; }
@@ -213,6 +246,8 @@ body.has-player.sp-mode { padding-bottom: 104px; }
   .player .np { flex-basis: 120px; }
   .player img { display: none; }
   h1 { font-size: 22px; }
+  header.top .wrap { position: relative; padding-right: 64px; }
+  header.top .top-actions { position: absolute; top: 16px; right: 16px; }
 }
 </style>
 </head>
@@ -220,11 +255,12 @@ body.has-player.sp-mode { padding-bottom: 104px; }
 <header class="top">
   <div class="wrap">
     <div>
-      <h1 id="siteTitle">Mahesh&#x27;s Music Catalog</h1>
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="https://electronut.in/music/">Music</a><span>›</span><a href="#" data-home>Catalog</a></nav>
+      <h1 id="siteTitle"><a href="#" data-home title="Back to the start of the catalog">Mahesh&#x27;s Music Catalog</a></h1>
       <div class="stats" id="stats"></div>
     </div>
     <div class="top-actions">
-      <a class="home-link" href="/music/">electronut.in/music</a>
+      
       <button class="icon-btn" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light or dark theme">◐</button>
     </div>
   </div>
@@ -241,11 +277,19 @@ body.has-player.sp-mode { padding-bottom: 104px; }
       <button data-view="tracks" aria-pressed="false">Tracks</button>
     </div>
     <select class="sort" id="sort" aria-label="Sort"></select>
-    <button class="icon-btn" id="filterToggle" aria-expanded="false">Filters</button>
+  </div>
+  <div class="quick" aria-label="Quick filters">
+    <button class="icon-btn" id="filterToggle" aria-expanded="false" aria-controls="facetPanel">Filters<span class="n" id="filterCount" hidden></span></button>
+    <span id="quick"></span>
   </div>
   <div class="active-filters" id="active"></div>
   <div class="layout">
-    <aside class="facets" id="facets" aria-label="Categories"></aside>
+    <aside class="facets" id="facetPanel" aria-label="Filters">
+      <div class="drawer-head"><b>Filters</b><button class="icon-btn" data-drawer-close aria-label="Close filters">✕</button></div>
+      <div id="facets"></div>
+      <div class="drawer-foot"><button data-clear="all">Clear all</button><button id="drawerDone" data-drawer-close>Show results</button></div>
+    </aside>
+    <div class="scrim" id="scrim" data-drawer-close></div>
     <section>
       <div class="result-meta" id="meta"></div>
       <div id="results"></div>
@@ -255,7 +299,7 @@ body.has-player.sp-mode { padding-bottom: 104px; }
 </main>
 
 <dialog id="dlg" aria-label="Album details">
-  <div class="dlg-head"><button class="icon-btn" id="dlgClose" aria-label="Close">✕</button></div>
+  <div class="dlg-head"><button class="dlg-back" data-dlg-back aria-label="Back to the catalog">← Catalog</button><button class="icon-btn" id="dlgClose" aria-label="Close">✕</button></div>
   <div id="dlgBody"></div>
 </dialog>
 
@@ -377,6 +421,18 @@ function renderFacets() {
 }
 const facetExpanded = new Set();
 
+// Phones: one-tap chips for the two filters that matter most (Status, Genre); everything else is in the drawer.
+function renderQuick() {
+  const vals = key => { const f = FACETS.find(x => x.key === key), seen = new Set(); TRACKS.concat(STUBS).forEach(t => f.get(t).forEach(v => seen.add(v))); return seen; };
+  const order = { status: ["In Archive", "Streaming only"], genre: ["Hindustani", "Carnatic", "Fusion"] };
+  const btns = key => order[key].filter(v => vals(key).has(v)).map(v =>
+    `<button data-facet="${key}" data-val="${esc(v)}" aria-pressed="${S.f[key] === v}">${esc(v)}</button>`).join("");
+  $("#quick").innerHTML = btns("status") + `<span class="sep" aria-hidden="true"></span>` + btns("genre");
+  const n = Object.keys(S.f).length;
+  $("#filterCount").hidden = !n; $("#filterCount").textContent = n;
+  const m = ($("#meta").textContent.match(/^\d+ \w+/) || [""])[0];
+  $("#drawerDone").textContent = m ? `Show ${m}` : "Show results";
+}
 function renderActive() {
   const chips = [];
   if (S.q.trim()) chips.push(`<span class="chip on">“${esc(S.q.trim())}” <button data-clear="q" aria-label="Clear search">×</button></span>`);
@@ -529,6 +585,7 @@ function render() {
   const tracks = filteredTracks();
   renderFacets(); renderActive();
   S.view === "albums" ? renderAlbums(tracks.concat(STUBS.filter(t => trackMatches(t)))) : renderTracks(tracks);
+  renderQuick();
   syncDialog();
   markPlaying();
 }
@@ -625,6 +682,18 @@ $("#nextBtn").onclick = () => qi + 1 < queue.length && playQueue(queue, qi + 1);
 
 // ---------- events ----------
 document.addEventListener("click", e => {
+  const nav = e.target.closest("[data-home], [data-drawer-close], [data-dlg-back]");
+  if (!nav) return;
+  if (nav.hasAttribute("data-home")) {  // title / breadcrumb: back to the start of the catalog
+    e.preventDefault(); autoTracks = false; $("#q").value = "";
+    if (dlg.open) dlg.close();
+    set({ view: "albums", q: "", sort: "", f: {}, open: "", page: 1 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else if (nav.hasAttribute("data-dlg-back")) dlg.close();
+  else drawer(false);
+});
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-home], [data-drawer-close], [data-dlg-back]")) return;
   const el = e.target.closest("button, a[data-open]");
   if (!el) return;
   const d = el.dataset;
@@ -667,7 +736,13 @@ function searchPatch(v) {
 }
 $("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => set(searchPatch(e.target.value), { replace: true }), 180); });
 $("#sort").addEventListener("change", e => set({ sort: e.target.value }));
-$("#filterToggle").onclick = e => { const o = $("#facets").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", o); };
+function drawer(open) {
+  $("#facetPanel").classList.toggle("open", open); $("#scrim").classList.toggle("on", open);
+  document.body.classList.toggle("drawer-open", open); $("#filterToggle").setAttribute("aria-expanded", open);
+  if (open) $("#facetPanel").querySelector("button")?.focus(); else $("#filterToggle").focus({ preventScroll: true });
+}
+$("#filterToggle").onclick = () => drawer(!$("#facetPanel").classList.contains("open"));
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#facetPanel").classList.contains("open")) drawer(false); });
 document.addEventListener("keydown", e => {
   if (e.key === "/" && document.activeElement !== $("#q") && !dlg.open) { e.preventDefault(); $("#q").focus(); }
 });
