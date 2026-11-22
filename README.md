@@ -1,8 +1,4 @@
-# Mahesh's Music Archive
+# Moved
 
-A static catalog of my music archive (albums, ragas, performers, liner notes) and my streaming lists, which are curated Spotify playlists with ragas and notes.
-
-- Archive: `index.html`
-- Streaming lists: `streaming.html`
-
-This repo holds only the generated public build. No audio is included.
+Mahesh's Music Catalog now lives at https://ragavox.com/catalog/ (part of Raga Vox).
+This repo only serves a redirect from the old address, electronut.in/music_catalog.
