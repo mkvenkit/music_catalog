@@ -628,7 +628,7 @@ document.addEventListener("click", e => {
   const el = e.target.closest("button, a[data-open]");
   if (!el) return;
   const d = el.dataset;
-  if (d.view) set({ view: d.view, sort: "" });
+  if (d.view) { autoTracks = false; set({ view: d.view, sort: "" }); }
   else if (d.facet) {
     e.stopPropagation();
     const f = { ...S.f }; f[d.facet] === d.val ? delete f[d.facet] : (f[d.facet] = d.val);
@@ -636,8 +636,9 @@ document.addEventListener("click", e => {
   }
   else if (d.more) { facetExpanded.has(d.more) ? facetExpanded.delete(d.more) : facetExpanded.add(d.more); renderFacets(); }
   else if (d.clear) {
-    if (d.clear === "all") set({ q: "", f: {} });
-    else if (d.clear === "q") set({ q: "" });
+    if (d.clear === "all" || d.clear === "q") $("#q").value = "";
+    if (d.clear === "all") set({ ...searchPatch(""), f: {} });
+    else if (d.clear === "q") set(searchPatch(""));
     else { const f = { ...S.f }; delete f[d.clear]; set({ f }); }
   }
   else if (d.page) { set({ page: +d.page }); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -656,7 +657,15 @@ document.addEventListener("click", e => {
   else if (d.playalbum) { const a = ALBUMS.find(x => x.id === d.playalbum); playQueue(a.tracks, 0); }
 });
 let qTimer;
-$("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => set({ q: e.target.value }, { replace: true }), 180); });
+// Searching shows matching tracks; clearing the search goes back to albums (unless you chose a view yourself).
+let autoTracks = false;
+function searchPatch(v) {
+  const p = { q: v };
+  if (v.trim() && !S.q.trim() && S.view === "albums") { p.view = "tracks"; p.sort = ""; autoTracks = true; }
+  if (!v.trim() && autoTracks) { p.view = "albums"; p.sort = ""; autoTracks = false; }
+  return p;
+}
+$("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => set(searchPatch(e.target.value), { replace: true }), 180); });
 $("#sort").addEventListener("change", e => set({ sort: e.target.value }));
 $("#filterToggle").onclick = e => { const o = $("#facets").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", o); };
 document.addEventListener("keydown", e => {
