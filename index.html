@@ -326,7 +326,7 @@ function readHash() {
 function writeHash(replace) {
   const p = new URLSearchParams();
   if (S.view !== "albums") p.set("view", S.view);
-  if (S.q) p.set("q", S.q);
+  if (S.q.trim()) p.set("q", S.q.trim());
   for (const [k, v] of Object.entries(S.f)) p.set(k, v);
   if (S.sort) p.set("sort", S.sort);
   if (S.page > 1) p.set("p", S.page);
@@ -379,7 +379,7 @@ const facetExpanded = new Set();
 
 function renderActive() {
   const chips = [];
-  if (S.q) chips.push(`<span class="chip on">“${esc(S.q)}” <button data-clear="q" aria-label="Clear search">×</button></span>`);
+  if (S.q.trim()) chips.push(`<span class="chip on">“${esc(S.q.trim())}” <button data-clear="q" aria-label="Clear search">×</button></span>`);
   for (const f of FACETS) if (S.f[f.key]) chips.push(`<span class="chip on">${esc(f.label)}: ${esc(S.f[f.key])} <button data-clear="${f.key}" aria-label="Remove filter">×</button></span>`);
   if (chips.length > 1) chips.push(`<button class="linkish" data-clear="all">Clear all</button>`);
   $("#active").innerHTML = chips.join("");
@@ -525,7 +525,7 @@ function render() {
   document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === S.view));
   $("#sort").innerHTML = SORTS[S.view].map(([v, l]) => `<option value="${v}">Sort: ${l}</option>`).join("");
   $("#sort").value = S.sort && SORTS[S.view].some(x => x[0] === S.sort) ? S.sort : SORTS[S.view][0][0];
-  if ($("#q").value !== S.q) $("#q").value = S.q;
+  if (document.activeElement !== $("#q") && $("#q").value.trim() !== S.q.trim()) $("#q").value = S.q;
   const tracks = filteredTracks();
   renderFacets(); renderActive();
   S.view === "albums" ? renderAlbums(tracks.concat(STUBS.filter(t => trackMatches(t)))) : renderTracks(tracks);
@@ -656,7 +656,7 @@ document.addEventListener("click", e => {
   else if (d.playalbum) { const a = ALBUMS.find(x => x.id === d.playalbum); playQueue(a.tracks, 0); }
 });
 let qTimer;
-$("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => set({ q: e.target.value.trim() }, { replace: true }), 180); });
+$("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => set({ q: e.target.value }, { replace: true }), 180); });
 $("#sort").addEventListener("change", e => set({ sort: e.target.value }));
 $("#filterToggle").onclick = e => { const o = $("#facets").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", o); };
 document.addEventListener("keydown", e => {
